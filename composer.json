@@ -1,0 +1,19 @@
+{
+    "name": "lab/marketing-email-lab",
+    "description": "Hybrid Promotional Campaign Laboratory (Systems Administration and Maintenance)",
+    "type": "project",
+    "require": {
+        "php": ">=8.3",
+        "aws/aws-sdk-php": "^3.300",
+        "phpmailer/phpmailer": "^6.9",
+        "fakerphp/faker": "^1.23"
+    },
+    "autoload": {
+        "psr-4": {
+            "Lab\\": "src/"
+        }
+    },
+    "config": {
+        "sort-packages": true
+    }
+}

@@ -1,0 +1,11 @@
+vendor/
+logs/
+.env
+*.sql.gz
+*.dump
+exports/
+*.csv
+.idea/
+.vscode/
+
+env.local.ps1

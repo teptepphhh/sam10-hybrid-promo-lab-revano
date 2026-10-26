@@ -1,0 +1,20 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "MarketingEmailQueueAccess",
+            "Effect": "Allow",
+            "Action": [
+                "sqs:SendMessage",
+                "sqs:ReceiveMessage",
+                "sqs:DeleteMessage",
+                "sqs:GetQueueAttributes",
+                "sqs:GetQueueUrl"
+            ],
+            "Resource": [
+                "arn:aws:sqs:REGION:ACCOUNT_ID:MarketingEmailQueue-s12345",
+                "arn:aws:sqs:REGION:ACCOUNT_ID:MarketingEmailDLQ-s12345"
+            ]
+        }
+    ]
+}
