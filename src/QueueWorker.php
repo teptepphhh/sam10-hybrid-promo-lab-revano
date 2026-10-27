@@ -8,10 +8,9 @@ use Aws\Sqs\SqsClient;
 use RuntimeException;
 use Throwable;
 
-/**
- * Long-polls SQS, hands each job to the processor, and deletes the message only after success.
- * Failed messages are left on the queue so they reappear and eventually move to the DLQ.
- */
+// Waits for SQS messages and gives each one to the processor
+// The message is deleted only after the result is saved in the database
+// If something fails it stays on the queue, comes back later, and ends up in the DLQ
 final class QueueWorker
 {
     public function __construct(
@@ -21,7 +20,7 @@ final class QueueWorker
         private ActivityLogger $logger,
     ) {}
 
-    // $maxIdlePolls = 0 runs forever (Ctrl+C to stop); otherwise exit after N consecutive empty polls.
+    // 0 means run forever (Ctrl+C to stop). Otherwise stop after N empty polls in a row
     public function run(int $maxIdlePolls = 0): void
     {
         $idlePolls = 0;
@@ -69,21 +68,21 @@ final class QueueWorker
             }
 
             $phase = 'process';
-            // TODO W1 (completed): hand the decoded job to the processor.
+            // TODO W1: give the job to the processor
             $outcome = $this->processor->process($job);
 
-            // TODO M3 (completed): track the delete phase so an ack failure is reported separately.
+            // TODO M3: remember we are in the delete step, so a delete error is logged as ack_failed
             $phase = 'delete';
-            // TODO W2 (completed): acknowledge with the ReceiptHandle (not the MessageId).
+            // TODO W2: delete with the ReceiptHandle, not the MessageId. SQS needs the handle from this receive
             $this->sqs->deleteMessage([
                 'QueueUrl'      => $this->queueUrl,
                 'ReceiptHandle' => $message['ReceiptHandle'],
             ]);
 
-            // TODO M3 (completed): log 'deleted' only after DeleteMessage succeeded.
+            // TODO M3: log 'deleted' only after the delete worked
             $this->event('deleted', $this->ids($job) + ['messageId' => $message['MessageId'], 'outcome' => $outcome]);
         } catch (Throwable $e) {
-            // The message is NOT deleted: it becomes visible again and eventually moves to the DLQ.
+            // We do not delete the message. SQS shows it again later, and after too many tries it goes to the DLQ
             $this->event($phase === 'delete' ? 'ack_failed' : 'processing_failed', $this->ids($job) + [
                 'messageId' => $message['MessageId'] ?? null,
                 'phase'     => $phase,
@@ -103,7 +102,7 @@ final class QueueWorker
         echo str_pad($event, 18) . implode(' ', $parts) . PHP_EOL;
     }
 
-    /** Whatever identifiers the job carries, if it decoded at all. */
+    // Get the IDs from the job, if it was decoded
     private function ids(?array $job): array
     {
         $ids = [];

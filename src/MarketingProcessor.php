@@ -8,9 +8,7 @@ use InvalidArgumentException;
 use PDO;
 use Throwable;
 
-/**
- * Processes one queue job: deduplicates, checks consent, sends, and records the outcome.
- */
+// Handles one job from the queue: check for duplicates, check consent, send, save the result
 final class MarketingProcessor
 {
     private const REQUIRED_FIELDS = ['requestId', 'campaignId', 'customerId', 'promoCode', 'subject', 'body'];
@@ -23,9 +21,7 @@ final class MarketingProcessor
         private int $sendDelaySeconds,
     ) {}
 
-    /**
-     * @return string 'SENT', 'SKIPPED' or 'DUPLICATE'
-     */
+    // Returns 'SENT', 'SKIPPED' or 'DUPLICATE'
     public function process(array $job): string
     {
         $missing = [];
@@ -44,23 +40,23 @@ final class MarketingProcessor
             'customerId' => $job['customerId'],
         ];
 
-        // TODO M2 (completed): log that processing of this job has started.
+        // TODO M2: log that we started this job
         $this->logger->record('processing_started', $ids);
 
-        // TODO P1 (completed): a SENT/SKIPPED history row means this pair is done; never send twice.
+        // TODO P1: if there is already a SENT or SKIPPED row, stop here. Never send twice
         if ($this->history->isComplete($job['campaignId'], $job['customerId'])) {
             $this->logger->record('duplicate_skipped', $ids);
             return 'DUPLICATE';
         }
 
-        // TODO P2 (completed): look up the customer with a prepared statement.
+        // TODO P2: find the customer with a prepared statement
         $statement = $this->db->prepare(
             'SELECT customer_id, full_name, email, marketing_opt_in FROM customers WHERE customer_id = ?'
         );
         $statement->execute([$job['customerId']]);
         $customer = $statement->fetch();
 
-        // TODO P3 (completed): skip unknown customers and customers without marketing consent.
+        // TODO P3: skip if the customer does not exist or did not opt in
         $reason = null;
         if ($customer === false) {
             $reason = 'Customer not found';
@@ -69,13 +65,13 @@ final class MarketingProcessor
         }
         if ($reason !== null) {
             $this->history->saveSkipped($job, $reason);
-            // TODO M2 (completed): log the skip and its reason.
+            // TODO M2: log the skip and the reason
             $this->logger->record('skipped', $ids + ['reason' => $reason]);
             return 'SKIPPED';
         }
 
-        // TODO P4 (completed): send through the injected EmailSender and keep the MIME Message-ID.
-        // Only the send is wrapped; no DB transaction is open during SMTP.
+        // TODO P4: send with EmailSender and keep the Message-ID
+        // Only the send is inside try. No database transaction is open while we wait for SMTP
         try {
             $messageId = $this->sender->send($customer, $job);
         } catch (Throwable $e) {
@@ -83,13 +79,13 @@ final class MarketingProcessor
             throw $e;
         }
 
-        // TODO P5 (completed): record the SENT outcome with recipient, provider, Message-ID and sent_at.
+        // TODO P5: save the SENT row with the email, provider, Message-ID and sent_at
         $this->history->saveSent($job, $customer['email'], $messageId);
 
-        // TODO M2 (completed): log 'sent' only after the SENT row is saved.
+        // TODO M2: log 'sent' only after the SENT row is saved
         $this->logger->record('sent', $ids + ['messageId' => $messageId]);
 
-        // Mailtrap free plan allows about 1 email per 10 seconds.
+        // Mailtrap free plan only allows about 1 email every 10 seconds, so we wait 11 to be safe
         sleep(max(0, $this->sendDelaySeconds));
 
         return 'SENT';

@@ -7,16 +7,14 @@ namespace Lab;
 use PDO;
 use RuntimeException;
 
-/**
- * Creates the local schema and prints a privacy-safe summary of the database.
- */
+// Creates the tables and prints a summary without names or emails
 final class LocalDatabaseTools
 {
     public function __construct(private readonly PDO $pdo)
     {
     }
 
-    // Applies schema.sql (TODO D1) statement by statement and lists the resulting tables.
+    // Run schema.sql (TODO D1) one statement at a time, then list the tables
     public function initialize(string $schemaPath): void
     {
         $sql = @file_get_contents($schemaPath);
@@ -37,7 +35,7 @@ final class LocalDatabaseTools
         }
     }
 
-    // display() prints counts and recent outbox rows without any names or email addresses.
+    // Only counts and IDs here, no names or emails
     public function display(): void
     {
         $total = (int) $this->pdo->query('SELECT COUNT(*) FROM customers')->fetchColumn();
@@ -105,11 +103,7 @@ final class LocalDatabaseTools
         echo PHP_EOL;
     }
 
-    /**
-     * Splits a SQL script on semicolons, ignoring "--" comment lines and empty statements.
-     *
-     * @return list<string>
-     */
+    // Split the SQL file on ";" and skip "--" comment lines and empty parts
     private function splitStatements(string $sql): array
     {
         $lines = array_filter(

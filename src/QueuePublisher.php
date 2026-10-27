@@ -9,9 +9,7 @@ use PDO;
 use RuntimeException;
 use Throwable;
 
-/**
- * Publishes outbox rows to SQS. Payloads carry identifiers and content only, never names or emails.
- */
+// Sends outbox rows to SQS. The message has IDs and the email text, but no names or emails
 final class QueuePublisher
 {
     public function __construct(
@@ -51,22 +49,22 @@ final class QueuePublisher
             $ids = $this->ids($payload);
 
             try {
-                // TODO Q1 (completed): send the JSON payload to SQS.
+                // TODO Q1: send the JSON message to SQS
                 $result = $this->sqs->sendMessage([
                     'QueueUrl'    => $this->queueUrl,
                     'MessageBody' => json_encode($payload, JSON_THROW_ON_ERROR),
                 ]);
                 $messageId = (string) $result['MessageId'];
 
-                // TODO Q2 (completed): mark the row QUEUED only after SQS accepted the message.
+                // TODO Q2: mark the row QUEUED only after SQS accepts the message
                 $update->execute([gmdate('Y-m-d H:i:s'), $messageId, $row['request_id']]);
 
-                // TODO M1 (completed): log the queued event with the SQS MessageId.
+                // TODO M1: log 'queued' with the SQS MessageId
                 $this->logger->record('queued', $ids + ['messageId' => $messageId]);
                 echo "queued    {$row['request_id']} {$row['customer_id']} -> {$messageId}" . PHP_EOL;
                 $published++;
             } catch (Throwable $e) {
-                // The row stays PENDING so the next run retries it.
+                // The row stays PENDING, so the next run will try it again
                 $this->logger->record('enqueue_failed', $ids + ['error' => $e->getMessage()]);
                 echo "FAILED    {$row['request_id']} {$row['customer_id']}: {$e->getMessage()}" . PHP_EOL;
                 $failed++;
@@ -76,7 +74,7 @@ final class QueuePublisher
         echo PHP_EOL . "Published: {$published}, failed: {$failed}, total pending found: " . count($rows) . PHP_EOL;
     }
 
-    // Re-sends the existing outbox payload without changing the outbox row (sequential-duplicate test).
+    // Send the same outbox message again without changing the row (for the duplicate test)
     public function resubmit(string $campaignId, string $customerId): void
     {
         $select = $this->db->prepare(
@@ -98,7 +96,7 @@ final class QueuePublisher
         echo "Resubmitted {$payload['requestId']} ({$campaignId} / {$customerId}) -> {$messageId}" . PHP_EOL;
     }
 
-    // Sends one corrected payload with a fresh requestId, without touching the outbox.
+    // Send one fixed test message with a new requestId. The outbox is not changed
     public function publishDiagnostic(string $campaignId, string $customerId, string $promoCode): void
     {
         $payload = [

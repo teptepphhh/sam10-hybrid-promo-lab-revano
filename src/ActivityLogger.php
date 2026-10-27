@@ -8,16 +8,11 @@ use DateTimeImmutable;
 use DateTimeZone;
 use RuntimeException;
 
-/**
- * Appends structured JSON Lines events to a log file. Never logs personal data or secrets.
- */
+// Writes one JSON line per event to the log file. No personal data or secrets go in
 final class ActivityLogger
 {
-    /**
-     * Context keys that must never reach the log (names, emails, credentials, message bodies).
-     * Keys are compared after lowercasing and removing "_", so full_name, fullName and FULLNAME all match.
-     * Allowed camelCase identifiers (requestId, campaignId, customerId, messageId, phase, reason, error) pass through.
-     */
+    // These keys are never written to the log (names, emails, passwords, email text)
+    // We lowercase the key and drop "_" first, so full_name and fullName both match
     private const FORBIDDEN_KEYS = [
         'name', 'fullname', 'firstname', 'lastname',
         'email', 'recipient', 'recipientemail', 'to', 'from', 'fromaddress',
@@ -27,7 +22,7 @@ final class ActivityLogger
 
     private string $logPath;
 
-    // Accepts an optional log path (default logs/events.jsonl) and creates the directory.
+    // Default log file is logs/events.jsonl. Make the folder if it is not there yet
     public function __construct(?string $logPath = null)
     {
         $this->logPath = $logPath ?? dirname(__DIR__) . DIRECTORY_SEPARATOR . 'logs' . DIRECTORY_SEPARATOR . 'events.jsonl';
@@ -38,7 +33,7 @@ final class ActivityLogger
         }
     }
 
-    // Appends one UTC JSON line with FILE_APPEND | LOCK_EX after stripping sensitive keys.
+    // LOCK_EX so two scripts writing at the same time do not mix up their lines
     public function record(string $event, array $context = []): void
     {
         $timestamp = (new DateTimeImmutable('now', new DateTimeZone('UTC')))->format('Y-m-d\TH:i:s.v\Z');
@@ -64,7 +59,7 @@ final class ActivityLogger
             if (is_array($value)) {
                 $value = $this->sanitize($value);
             } elseif (is_string($value)) {
-                // Error messages (e.g. PHPMailer "recipients failed: x@y") can embed addresses; mask them.
+                // Error messages can have email addresses in them (like PHPMailer errors), so hide them
                 $value = preg_replace('/[^\s<>@"\':;,]+@[^\s<>@"\':;,]+/', '[redacted-email]', $value);
             }
             $clean[$key] = $value;

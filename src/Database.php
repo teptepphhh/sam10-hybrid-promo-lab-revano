@@ -6,12 +6,9 @@ namespace Lab;
 
 use PDO;
 
-/**
- * Creates the PDO connection to the local MySQL database.
- */
 final class Database
 {
-    // connect() builds a utf8mb4 PDO connection from environment variables and forces UTC.
+    // Connect to MySQL with the env settings. Time zone is UTC so all dates match
     public function connect(): PDO
     {
         $host     = getenv('DB_HOST') ?: '127.0.0.1';

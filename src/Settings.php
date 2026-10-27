@@ -7,12 +7,10 @@ namespace Lab;
 use Aws\Sqs\SqsClient;
 use RuntimeException;
 
-/**
- * Reads configuration from environment variables. Never hard-codes secrets.
- */
+// Reads settings from environment variables. No secrets in the code
 final class Settings
 {
-    // required() fails fast when an environment variable is missing or empty.
+    // Stop right away if the variable is missing or empty
     public static function required(string $name): string
     {
         $value = getenv($name);
@@ -24,7 +22,7 @@ final class Settings
         return $value;
     }
 
-    // queue() builds an SQS client; credentials are resolved from AWS_PROFILE by the SDK.
+    // The AWS SDK gets the keys from AWS_PROFILE by itself
     public static function queue(): SqsClient
     {
         return new SqsClient([
@@ -33,10 +31,7 @@ final class Settings
         ]);
     }
 
-    // mail() returns Mailtrap SMTP settings, with MAILTRAP_DELAY_SECONDS defaulting to 11.
-    /**
-     * @return array{host: string, port: int, username: string, password: string, from_address: string, delay_seconds: int}
-     */
+    // Mailtrap settings. The delay is 11 seconds if MAILTRAP_DELAY_SECONDS is not set
     public static function mail(): array
     {
         $delay = getenv('MAILTRAP_DELAY_SECONDS');

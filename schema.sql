@@ -1,5 +1,5 @@
--- TODO D1 (completed): table definitions only (no INSERT statements).
--- customers is created first because marketing_outbox references it.
+-- TODO D1: create the tables only, no INSERTs here
+-- customers comes first because marketing_outbox points to it
 
 CREATE TABLE IF NOT EXISTS customers (
     customer_id      VARCHAR(32)  NOT NULL,
@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS marketing_outbox (
     CONSTRAINT fk_outbox_customer FOREIGN KEY (customer_id) REFERENCES customers (customer_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- No foreign key to customers: logical association only, so an unknown customer can be recorded as SKIPPED.
+-- No foreign key here, so we can still save a SKIPPED row for a customer that does not exist
 CREATE TABLE IF NOT EXISTS sent_marketing_emails (
     campaign_id     VARCHAR(64)                         NOT NULL,
     customer_id     VARCHAR(32)                         NOT NULL,

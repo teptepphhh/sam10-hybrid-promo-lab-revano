@@ -12,7 +12,7 @@ use Lab\MarketingProcessor;
 use Lab\QueueWorker;
 use Lab\Settings;
 
-// Usage: php worker.php [--idle-exit=N]   (default 0 = run until Ctrl+C)
+// Run: php worker.php [--idle-exit=N]. 0 means keep running until Ctrl+C
 $idleExit = 0;
 foreach (array_slice($argv, 1) as $arg) {
     if (preg_match('/^--idle-exit=(\d+)$/', $arg, $match)) {

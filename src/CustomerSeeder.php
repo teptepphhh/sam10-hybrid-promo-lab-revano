@@ -7,9 +7,7 @@ namespace Lab;
 use PDO;
 use Throwable;
 
-/**
- * Seeds 10,000 fictional customers with Faker. Existing records are preserved.
- */
+// Adds 10,000 fake customers with Faker. Rows that already exist are not changed
 final class CustomerSeeder
 {
     private const TOTAL = 10000;
@@ -19,8 +17,8 @@ final class CustomerSeeder
 
     public function seed(): void
     {
-        // ON DUPLICATE KEY UPDATE with a no-op keeps existing rows unchanged (affected rows = 0)
-        // without hiding unrelated errors the way INSERT IGNORE would.
+        // The "do nothing" update keeps old rows as they are
+        // We do not use INSERT IGNORE because it would also hide real errors
         $insert = $this->db->prepare(
             'INSERT INTO customers (customer_id, full_name, email, marketing_opt_in, created_at)
              VALUES (?, ?, ?, ?, ?)
@@ -36,10 +34,10 @@ final class CustomerSeeder
                 $customerId = sprintf('CUST-%05d', $i);
                 $email = sprintf('customer%05d@example.com', $i);
 
-                // TODO S1 (completed): generate a fictional customer name with Faker.
+                // TODO S1: get a fake name from Faker
                 $name = $this->faker->name();
 
-                // TODO S2 (completed): first 8,000 customers are opted in (eligible), the remaining 2,000 are not.
+                // TODO S2: first 8000 customers say yes to marketing, the last 2000 say no
                 $consent = $i <= self::ELIGIBLE ? 1 : 0;
 
                 $insert->execute([$customerId, $name, $email, $consent, gmdate('Y-m-d H:i:s')]);

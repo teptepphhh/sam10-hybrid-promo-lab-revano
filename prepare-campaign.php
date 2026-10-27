@@ -11,7 +11,7 @@ use Lab\Database;
 $campaignId = $argv[1] ?? '';
 $promoCode = $argv[2] ?? '';
 
-// Letters, digits, "-" and "_" only, up to the 64-character column limit.
+// Only letters, numbers, - and _ are allowed, max 64 characters because that is the column size
 $pattern = '/^[A-Za-z0-9_-]{1,64}$/';
 
 if (!preg_match($pattern, $campaignId) || !preg_match($pattern, $promoCode)) {

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-// Shared bootstrap: every root script starts with require __DIR__ . '/config.php';
-// All secrets (DB_USER, DB_PASSWORD, AWS_PROFILE, MAILTRAP_*) come from environment variables.
+// Every script loads this file first
+// Passwords and keys come from environment variables, never from the code
 
 require __DIR__ . '/vendor/autoload.php';

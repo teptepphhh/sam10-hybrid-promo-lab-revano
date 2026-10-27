@@ -6,14 +6,12 @@ namespace Lab;
 
 use PDO;
 
-/**
- * Stores the latest delivery outcome per campaign/customer in sent_marketing_emails.
- */
+// Saves the last result for each campaign and customer in sent_marketing_emails
 final class EmailHistory
 {
     public function __construct(private PDO $db) {}
 
-    // A SENT or SKIPPED row is final; FAILED rows may be retried.
+    // SENT or SKIPPED means done. FAILED can be tried again
     public function isComplete(string $campaignId, string $customerId): bool
     {
         $statement = $this->db->prepare(
@@ -26,13 +24,7 @@ final class EmailHistory
         return $statement->fetchColumn() !== false;
     }
 
-    /**
-     * Upserts one row; the table keeps only the latest outcome per (campaign_id, customer_id).
-     *
-     * @param array{campaign_id: string, customer_id: string, request_id: string, promo_code: string,
-     *              recipient_email: ?string, subject: string, status: string, provider: ?string,
-     *              message_id: ?string, reason: ?string, processed_at: string, sent_at: ?string} $outcome
-     */
+    // Insert or update, so there is only one row per campaign and customer
     public function save(array $outcome): void
     {
         $statement = $this->db->prepare(
@@ -110,7 +102,7 @@ final class EmailHistory
         ]);
     }
 
-    /** Maps the camelCase queue job onto the snake_case key columns. */
+    // The queue job uses camelCase keys, the table uses snake_case
     private function fromJob(array $job): array
     {
         return [
